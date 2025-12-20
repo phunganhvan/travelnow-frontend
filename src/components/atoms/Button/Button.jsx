@@ -17,6 +17,10 @@ const Button = ({
   const variants = {
     primary:
       'bg-primary text-white hover:bg-primaryDark focus:ring-primary',
+    success:
+      'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
+    danger:
+      'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
     outline:
       'border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 focus:ring-primary',
     ghost:

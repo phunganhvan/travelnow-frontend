@@ -4,11 +4,15 @@ import MainLayout from './layouts/MainLayout/MainLayout';
 import HomePage from './pages/Home/HomePage';
 import SearchResultsPage from './pages/Search/SearchResultsPage';
 import HotelDetailPage from './pages/Hotel/HotelDetailPage';
+import HotelCheckoutPage from './pages/Hotel/HotelCheckoutPage';
 import LoginPage from './pages/Auth/LoginPage';
 import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
 import OtpPage from './pages/Auth/OtpPage';
 import ResetPasswordPage from './pages/Auth/ResetPasswordPage';
 import UserInfoPage from './pages/User/UserInfoPage';
+import MyBookingsPage from './pages/User/MyBookingsPage';
+import BookingDetailPage from './pages/User/BookingDetailPage';
+import PromotionsPage from './pages/Promotions/PromotionsPage';
 import { useAuth } from './context/AuthContext';
 
 const RequireAuth = ({ children }) => {
@@ -29,7 +33,16 @@ const RoutesConfig = () => {
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/search" element={<SearchResultsPage />} />
+        <Route path="/vouchers" element={<PromotionsPage />} />
         <Route path="/hotel/:id" element={<HotelDetailPage />} />
+        <Route
+          path="/hotel/:id/checkout"
+          element={(
+            <RequireAuth>
+              <HotelCheckoutPage />
+            </RequireAuth>
+          )}
+        />
         <Route path="/user/login" element={<LoginPage />} />
         <Route path="/user/forgot-password" element={<ForgotPasswordPage />} />
         <Route
@@ -45,6 +58,22 @@ const RoutesConfig = () => {
           element={(
             <RequireAuth>
               <UserInfoPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/user/bookings"
+          element={(
+            <RequireAuth>
+              <MyBookingsPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/user/bookings/:id"
+          element={(
+            <RequireAuth>
+              <BookingDetailPage />
             </RequireAuth>
           )}
         />

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import HeroSearchForm from '../../components/molecules/HeroSearchForm/HeroSearchForm';
+import PromotionSection from '../../components/organisms/PromotionSection/PromotionSection';
 import OfferCard from '../../components/molecules/cards/OfferCard';
 import DestinationCard from '../../components/molecules/cards/DestinationCard';
 import Footer from '../../components/molecules/Footer/Footer';
@@ -11,10 +13,21 @@ import { useImagePreview } from '../../hooks/useImagePreview';
 import TextInput from '../../components/atoms/inputs/TextInput';
 import Button from '../../components/atoms/Button/Button';
 import { toast } from 'react-hot-toast';
+import { get } from '../../services/api';
 
 /**
  * Trang chủ: gồm hero + form tìm kiếm + các section ưu đãi & điểm đến + form demo có upload ảnh & editor.
  */
+const getPrimaryImage = (hotel) => {
+  if (Array.isArray(hotel.imageUrls) && hotel.imageUrls.length > 0) {
+    return hotel.imageUrls.find(Boolean) || hotel.imageUrl;
+  }
+  if (Array.isArray(hotel.photos) && hotel.photos.length > 0) {
+    return hotel.photos.find(Boolean) || hotel.imageUrl;
+  }
+  return hotel.imageUrl;
+};
+
 const HomePage = () => {
   const {
     file,
@@ -106,6 +119,39 @@ const HomePage = () => {
     }
   ];
 
+  const [hotels, setHotels] = useState([]);
+  const [loadingHotels, setLoadingHotels] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function fetchHotels() {
+      try {
+        setLoadingHotels(true);
+        const data = await get('/hotels/search');
+        if (!ignore) {
+          setHotels(Array.isArray(data?.hotels) ? data.hotels : []);
+        }
+      } catch (error) {
+        if (!ignore) {
+          toast.error(error.message || 'Không thể tải danh sách khách sạn');
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingHotels(false);
+        }
+      }
+    }
+
+    fetchHotels();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const featuredHotels = hotels.slice(0, 4);
+
   return (
     <div className="pb-10">
       {/* HERO */}
@@ -138,6 +184,9 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Phần khuyến mãi voucher */}
+      <PromotionSection />
 
       <div className="app-container mt-12 space-y-16">
         {/* Ưu đãi đặc biệt */}
@@ -186,7 +235,87 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* Đã bỏ form demo tạo ưu đãi để giao diện gọn hơn */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">
+                Khách sạn nổi bật
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Những chỗ nghỉ được đánh giá cao từ cộng đồng TravelNow.
+              </p>
+            </div>
+            <Link
+              to="/search"
+              className="hidden text-sm font-semibold text-primary hover:text-primaryDark md:inline-flex"
+            >
+              Xem tất cả khách sạn &rarr;
+            </Link>
+          </div>
+
+          {loadingHotels ? (
+            <div className="rounded-2xl border border-slate-100 bg-white px-6 py-8 text-center text-sm text-slate-500 shadow-sm">
+              Đang tải danh sách khách sạn...
+            </div>
+          ) : featuredHotels.length === 0 ? (
+            <div className="rounded-2xl border border-slate-100 bg-white px-6 py-8 text-center text-sm text-slate-500 shadow-sm">
+              Chưa có khách sạn nào trong hệ thống.
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+              {featuredHotels.map((hotel) => {
+                const coverPhoto = getPrimaryImage(hotel);
+                return (
+                  <Link
+                    key={hotel._id}
+                    to={`/hotel/${hotel._id}`}
+                    state={{ hotel }}
+                    className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-shadow hover:shadow-md"
+                  >
+                    <div className="h-40 w-full bg-slate-100">
+                      {coverPhoto ? (
+                        <img
+                          src={coverPhoto}
+                          alt={hotel.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="space-y-2 px-4 py-3 text-sm">
+                      <p className="text-[11px] font-semibold uppercase text-slate-400">
+                        {hotel.city}
+                      </p>
+                      <h3 className="text-base font-semibold text-slate-900 line-clamp-2">
+                        {hotel.name}
+                      </h3>
+                      {typeof hotel.rating === 'number' && hotel.rating > 0 ? (
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-semibold text-white">
+                            {hotel.rating.toFixed(1)}
+                          </span>
+                          {hotel.reviewCount ? <span>{hotel.reviewCount} đánh giá</span> : null}
+                        </div>
+                      ) : null}
+                      <p className="text-sm font-semibold text-slate-900">
+                        {typeof hotel.pricePerNight === 'number'
+                          ? `${hotel.pricePerNight.toLocaleString('vi-VN')} đ / đêm`
+                          : 'Liên hệ để biết giá'}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          <Link
+            to="/search"
+            className="mt-2 w-full text-center text-sm font-semibold text-primary hover:text-primaryDark md:hidden"
+          >
+            Xem tất cả khách sạn &rarr;
+          </Link>
+        </section>
+
       </div>
 
       <Footer />

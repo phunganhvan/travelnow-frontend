@@ -10,8 +10,9 @@ const NavBar = () => {
   const { user, logout } = useAuth();
   const navLinks = [
     { label: 'Trang chủ', path: '/' },
-    { label: 'Chuyến đi của tôi', path: '/trips' },
-    { label: 'Khuyến mãi', path: '/deals' }
+    { label: 'Khách sạn', path: '/search' },
+    { label: 'Chuyến đi của tôi', path: '/user/bookings' },
+    { label: 'Khuyến mãi', path: '/vouchers' }
   ];
   const location = useLocation();
   const authPaths = [
@@ -27,6 +28,8 @@ const NavBar = () => {
   if (!location.pathname.startsWith('/user')) {
     if (location.pathname === '/') {
       activeNav = 'Trang chủ';
+    } else if (location.pathname.startsWith('/search')) {
+      activeNav = 'Khách sạn';
     } else if (location.pathname.startsWith('/trips')) {
       activeNav = 'Chuyến đi của tôi';
     } else if (location.pathname.startsWith('/deals')) {

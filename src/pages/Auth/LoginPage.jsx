@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Mail, Lock, Eye } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import TextInput from '../../components/atoms/inputs/TextInput';
 import Button from '../../components/atoms/Button/Button';
@@ -11,7 +11,10 @@ import { useAuth } from '../../context/AuthContext';
 const LoginPage = () => {
   const [activeTab, setActiveTab] = useState('login');
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+  const redirectTo = location.state?.redirectTo || null;
+  const bookingPayload = location.state?.bookingPayload || null;
 
   const { handleSubmit, control, watch, reset } = useForm({
     defaultValues: {
@@ -36,7 +39,11 @@ const LoginPage = () => {
         }
 
         toast.success('Đăng nhập thành công');
-        navigate('/');
+        if (redirectTo) {
+          navigate(redirectTo, { replace: true, state: bookingPayload });
+        } else {
+          navigate('/');
+        }
       } else {
         await post('/user/register', {
           fullName: values.fullName,

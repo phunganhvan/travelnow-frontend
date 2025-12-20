@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { get } from '../../services/api';
 import Button from '../../components/atoms/Button/Button';
 import { toast } from 'react-hot-toast';
-import { demoHotels as demoHotelsData } from '../../data/demoHotels';
 
 function useQuery() {
   const { search } = useLocation();
@@ -11,6 +10,7 @@ function useQuery() {
 }
 
 const SearchResultsPage = () => {
+  const location = useLocation();
   const query = useQuery();
   const navigate = useNavigate();
   const destination = query.get('destination') || '';
@@ -20,16 +20,53 @@ const SearchResultsPage = () => {
   const [allHotels, setAllHotels] = useState([]);
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchDestination, setSearchDestination] = useState(destination);
 
-  const [selectedStar, setSelectedStar] = useState(null);
-  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  useEffect(() => {
+    setSearchDestination(destination);
+  }, [destination]);
+
+  const handleSearchDestination = () => {
+    const params = new URLSearchParams(location.search);
+    if (searchDestination.trim()) {
+      params.set('destination', searchDestination.trim());
+    } else {
+      params.delete('destination');
+    }
+    navigate(`/search?${params.toString()}`);
+  };
 
   const AMENITY_FILTERS = useMemo(
     () => ['Hồ bơi', 'Bữa sáng miễn phí', 'Gần biển', 'Đưa đón sân bay'],
     []
   );
 
-  const applyFilters = (source, star, amenities) => {
+  const PRICE_RANGES = useMemo(
+    () => [
+      { id: 'all', label: 'Tất cả', min: 0, max: Infinity },
+      { id: 'under-1m', label: 'Dưới 1 triệu', min: 0, max: 1000000 },
+      { id: '1m-3m', label: '1 triệu - 3 triệu', min: 1000000, max: 3000000 },
+      { id: '3m-5m', label: '3 triệu - 5 triệu', min: 3000000, max: 5000000 },
+      { id: 'above-5m', label: 'Trên 5 triệu', min: 5000000, max: Infinity }
+    ],
+    []
+  );
+
+  const [selectedStar, setSelectedStar] = useState(null);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [selectedPriceRange, setSelectedPriceRange] = useState(() => PRICE_RANGES[0]);
+
+  const getPrimaryImage = (hotel) => {
+    if (Array.isArray(hotel.imageUrls) && hotel.imageUrls.length > 0) {
+      return hotel.imageUrls.find(Boolean) || hotel.imageUrl;
+    }
+    if (Array.isArray(hotel.photos) && hotel.photos.length > 0) {
+      return hotel.photos.find(Boolean) || hotel.imageUrl;
+    }
+    return hotel.imageUrl;
+  };
+
+  const applyFilters = (source, star, amenities, priceRange) => {
     let result = [...source];
 
     if (star) {
@@ -43,6 +80,23 @@ const SearchResultsPage = () => {
       result = result.filter((hotel) => {
         const hotelAmenities = hotel.amenities || [];
         return amenities.every((a) => hotelAmenities.includes(a));
+      });
+    }
+
+    if (priceRange && priceRange.id !== 'all') {
+      result = result.filter((hotel) => {
+        // Lấy giá thấp nhất của khách sạn để so sánh
+        let minPrice = hotel.pricePerNight;
+        if (hotel.rooms && hotel.rooms.length > 0) {
+          const prices = hotel.rooms
+            .map((room) => room.price)
+            .filter((p) => typeof p === 'number' && p > 0);
+          if (prices.length > 0) {
+            minPrice = Math.min(...prices);
+          }
+        }
+        if (minPrice == null) return false;
+        return minPrice >= priceRange.min && minPrice < priceRange.max;
       });
     }
 
@@ -78,36 +132,53 @@ const SearchResultsPage = () => {
   };
 
   useEffect(() => {
+    let ignore = false;
+
     async function fetchHotels() {
-      if (!destination) {
-        setAllHotels(demoHotelsData);
-        setHotels(applyFilters(demoHotelsData, selectedStar, selectedAmenities));
-        return;
-      }
       try {
         setLoading(true);
-        const params = new URLSearchParams({
-          destination,
-          checkIn,
-          checkOut,
-          guests
-        });
-        const data = await get(`/hotels/search?${params.toString()}`);
-        const results =
-          data.hotels && data.hotels.length > 0 ? data.hotels : demoHotelsData;
-        setAllHotels(results);
-        setHotels(applyFilters(results, selectedStar, selectedAmenities));
+
+        const params = new URLSearchParams();
+        if (destination) params.set('destination', destination);
+        if (checkIn) params.set('checkIn', checkIn);
+        if (checkOut) params.set('checkOut', checkOut);
+        if (guests) params.set('guests', guests);
+
+        const queryString = params.toString();
+        const endpoint = queryString ? `/hotels/search?${queryString}` : '/hotels/search';
+
+        const data = await get(endpoint);
+        const results = Array.isArray(data?.hotels)
+          ? data.hotels
+          : Array.isArray(data)
+            ? data
+            : [];
+
+        if (!ignore) {
+          setAllHotels(results);
+        }
       } catch (error) {
-        toast.error(error.message || 'Không thể tải danh sách khách sạn');
-        setAllHotels(demoHotelsData);
-        setHotels(applyFilters(demoHotelsData, selectedStar, selectedAmenities));
+        if (!ignore) {
+          toast.error(error.message || 'Không thể tải danh sách khách sạn');
+          setAllHotels([]);
+        }
       } finally {
-        setLoading(false);
+        if (!ignore) {
+          setLoading(false);
+        }
       }
     }
 
     fetchHotels();
-  }, [destination, checkIn, checkOut, guests, selectedStar, selectedAmenities]);
+
+    return () => {
+      ignore = true;
+    };
+  }, [destination, checkIn, checkOut, guests]);
+
+  useEffect(() => {
+    setHotels(applyFilters(allHotels, selectedStar, selectedAmenities, selectedPriceRange));
+  }, [allHotels, selectedStar, selectedAmenities, selectedPriceRange]);
 
   const handleStarClick = (star) => {
     setSelectedStar((prev) => (prev === star ? null : star));
@@ -153,10 +224,43 @@ const SearchResultsPage = () => {
           <aside className="space-y-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase text-slate-400">
+                Tìm kiếm
+              </p>
+              <p className="text-sm font-medium text-slate-900">Điểm đến</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchDestination}
+                  onChange={(e) => setSearchDestination(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchDestination()}
+                  placeholder="Nhập điểm đến..."
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-primary focus:outline-none"
+                />
+                <Button size="sm" onClick={handleSearchDestination}>
+                  Tìm
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase text-slate-400">
                 Bộ lọc
               </p>
               <p className="text-sm font-medium text-slate-900">Khoảng giá</p>
-              <div className="h-1 rounded-full bg-slate-200" />
+              <div className="space-y-1">
+                {PRICE_RANGES.map((range) => (
+                  <label key={range.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="priceRange"
+                      className="h-3.5 w-3.5 border-slate-300 text-primary focus:ring-primary"
+                      checked={selectedPriceRange?.id === range.id}
+                      onChange={() => setSelectedPriceRange(range)}
+                    />
+                    <span>{range.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -169,11 +273,11 @@ const SearchResultsPage = () => {
                     onClick={() => handleStarClick(star)}
                     className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
                       selectedStar === star
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-slate-200 text-slate-700 hover:border-primary hover:text-primary'
+                        ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                        : 'border-slate-200 text-slate-700 hover:border-yellow-500 hover:text-yellow-600'
                     }`}
                   >
-                    {star}★
+                    {star} <span className="text-yellow-500">★</span>
                   </button>
                 ))}
               </div>
@@ -204,17 +308,24 @@ const SearchResultsPage = () => {
                 Đang tải danh sách chỗ nghỉ...
               </div>
             )}
+            {!loading && hotels.length === 0 && (
+              <div className="py-10 text-center text-sm text-slate-500">
+                Không tìm thấy khách sạn phù hợp. Hãy thử điều chỉnh bộ lọc.
+              </div>
+            )}
             {!loading &&
-              hotels.map((hotel) => (
+              hotels.map((hotel) => {
+                const primaryImage = getPrimaryImage(hotel);
+                return (
                 <article
                   key={hotel._id}
                   className="flex cursor-pointer flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md md:flex-row"
                   onClick={() => navigate(`/hotel/${hotel._id}`, { state: { hotel } })}
                 >
                   <div className="h-40 w-full overflow-hidden rounded-2xl bg-slate-100 md:w-48">
-                    {hotel.imageUrl && (
+                    {primaryImage && (
                       <img
-                        src={hotel.imageUrl}
+                        src={primaryImage}
                         alt={hotel.name}
                         className="h-full w-full object-cover"
                       />
@@ -269,7 +380,8 @@ const SearchResultsPage = () => {
                     </div>
                   </div>
                 </article>
-              ))}
+              );
+            })}
           </section>
         </div>
       </div>
