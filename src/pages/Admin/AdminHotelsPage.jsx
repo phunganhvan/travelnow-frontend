@@ -5,6 +5,9 @@ import { del, get, post, put } from '../../services/api';
 const initialForm = {
   name: '',
   city: '',
+  address: '',
+  description: '',
+  amenities: '',
   pricePerNight: ''
 };
 
@@ -15,6 +18,7 @@ const AdminHotelsPage = () => {
   const [error, setError] = useState('');
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
+  const [imagePreviews, setImagePreviews] = useState([]);
    const [selectedHotel, setSelectedHotel] = useState(null);
    const [editForm, setEditForm] = useState({
      name: '',
@@ -48,6 +52,32 @@ const AdminHotelsPage = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleImagesChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) {
+      setImagePreviews([]);
+      return;
+    }
+
+    setImagePreviews([]);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleSetPrimaryPreview = (index) => {
+    setImagePreviews((prev) => {
+      if (!prev || index < 0 || index >= prev.length) return prev;
+      const copy = [...prev];
+      const [chosen] = copy.splice(index, 1);
+      return [chosen, ...copy];
+    });
+  };
+
   const handleCreate = (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -56,12 +86,19 @@ const AdminHotelsPage = () => {
     const payload = {
       name: form.name,
       city: form.city,
-      pricePerNight: Number(form.pricePerNight) || 0
+      address: form.address,
+      description: form.description,
+      pricePerNight: Number(form.pricePerNight) || 0,
+      amenities: form.amenities
+        ? form.amenities.split(',').map((a) => a.trim()).filter(Boolean)
+        : [],
+      imageDataUrls: imagePreviews
     };
 
     post('/admin/hotels', payload)
       .then(() => {
         setForm(initialForm);
+        setImagePreviews([]);
         fetchHotels();
       })
       .catch((err) => {
@@ -176,6 +213,87 @@ const AdminHotelsPage = () => {
               required
             />
           </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Địa chỉ
+            </label>
+            <input
+              name="address"
+              value={form.address}
+              onChange={handleChange}
+              className="w-full border rounded px-2 py-1 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Tiện nghi (cách nhau bởi dấu phẩy)
+            </label>
+            <input
+              name="amenities"
+              value={form.amenities}
+              onChange={handleChange}
+              className="w-full border rounded px-2 py-1 text-sm"
+              placeholder="Wifi, Bữa sáng miễn phí, ..."
+            />
+          </div>
+          <div className="md:col-span-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Mô tả
+            </label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              className="w-full border rounded px-2 py-1 text-sm min-h-[80px]"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Ảnh khách sạn (có thể chọn nhiều ảnh)
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImagesChange}
+            className="text-xs"
+          />
+          {imagePreviews.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {imagePreviews.map((src, index) => {
+                const isPrimary = index === 0;
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleSetPrimaryPreview(index)}
+                    className={`relative focus:outline-none ${
+                      isPrimary ? 'ring-2 ring-blue-500 rounded' : ''
+                    }`}
+                    title={
+                      isPrimary
+                        ? 'Ảnh đại diện (ảnh chính)'
+                        : 'Bấm để đặt làm ảnh đại diện'
+                    }
+                  >
+                    <img
+                      src={src}
+                      alt={`Preview ${index + 1}`}
+                      className="w-16 h-16 rounded object-cover border"
+                    />
+                    {isPrimary && (
+                      <span className="absolute bottom-0 left-0 right-0 bg-blue-600/80 text-[10px] text-white text-center rounded-b">
+                        Ảnh đại diện
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
         <button
           type="submit"

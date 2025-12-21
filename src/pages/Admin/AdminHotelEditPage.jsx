@@ -18,6 +18,8 @@ const AdminHotelEditPage = () => {
     amenities: ''
   });
   const [rooms, setRooms] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImagePreviews, setNewImagePreviews] = useState([]);
 
   useEffect(() => {
     async function fetchHotel() {
@@ -41,6 +43,18 @@ const AdminHotelEditPage = () => {
           imageUrl: hotel.imageUrl || '',
           amenities: Array.isArray(hotel.amenities) ? hotel.amenities.join(', ') : ''
         });
+
+        const urls = Array.isArray(hotel.imageUrls)
+          ? hotel.imageUrls.filter(Boolean)
+          : [];
+        if (urls.length > 0) {
+          setExistingImages(urls);
+        } else if (hotel.imageUrl) {
+          setExistingImages([hotel.imageUrl]);
+        } else {
+          setExistingImages([]);
+        }
+        setNewImagePreviews([]);
 
         setRooms(Array.isArray(hotel.roomTypes) ? hotel.roomTypes.map((r) => ({
           id: r._id || r.id || undefined,
@@ -95,6 +109,35 @@ const AdminHotelEditPage = () => {
     setRooms((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleRemoveExistingImage = (url) => {
+    setExistingImages((prev) => prev.filter((u) => u !== url));
+  };
+
+  const handleSetPrimaryExistingImage = (url) => {
+    setExistingImages((prev) => {
+      const filtered = prev.filter((u) => u !== url);
+      return [url, ...filtered];
+    });
+    setForm((prev) => ({ ...prev, imageUrl: url }));
+  };
+
+  const handleNewImagesChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewImagePreviews((prev) => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveNewImage = (index) => {
+    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -111,6 +154,8 @@ const AdminHotelEditPage = () => {
         amenities: form.amenities
           ? form.amenities.split(',').map((a) => a.trim()).filter(Boolean)
           : [],
+        imageUrls: existingImages,
+        imageDataUrls: newImagePreviews,
         roomTypes: rooms.map((room) => ({
           name: room.name,
           pricePerNight: Number(room.pricePerNight) || 0,
@@ -230,6 +275,91 @@ const AdminHotelEditPage = () => {
               onChange={handleChange}
               className="w-full border rounded px-2 py-1 text-sm"
             />
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Ảnh hiện có
+              </label>
+              {existingImages.length === 0 ? (
+                <p className="text-xs text-gray-500">Chưa có ảnh nào.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {existingImages.map((url, index) => {
+                    const isPrimary = url === form.imageUrl || index === 0;
+                    return (
+                      <div key={url} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimaryExistingImage(url)}
+                          className={`focus:outline-none ${
+                            isPrimary ? 'ring-2 ring-blue-500 rounded' : ''
+                          }`}
+                          title={
+                            isPrimary
+                              ? 'Ảnh đại diện (ảnh chính)'
+                              : 'Bấm để đặt làm ảnh đại diện'
+                          }
+                        >
+                          <img
+                            src={url}
+                            alt="Hotel"
+                            className="w-16 h-16 rounded object-cover border"
+                          />
+                          {isPrimary && (
+                            <span className="absolute bottom-0 left-0 right-0 bg-blue-600/80 text-[10px] text-white text-center rounded-b">
+                              Ảnh đại diện
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExistingImage(url)}
+                          className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                          title="Xóa ảnh này"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Thêm ảnh mới (có thể chọn nhiều ảnh)
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleNewImagesChange}
+                className="text-xs"
+              />
+              {newImagePreviews.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {newImagePreviews.map((src, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={src}
+                        alt={`New preview ${index + 1}`}
+                        className="w-16 h-16 rounded object-cover border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveNewImage(index)}
+                        className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                        title="Bỏ ảnh này"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
