@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-hot-toast';
 
 const linkBaseClasses =
   'block px-4 py-2 rounded-md text-sm font-medium transition-colors';
@@ -17,11 +18,12 @@ const AdminLayout = () => {
 
   const handleLogout = () => {
     logout();
+    toast.success('Đăng xuất thành công');
     navigate('/user/login');
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-100">
+    <div className="h-screen flex bg-gray-100 overflow-hidden">
       <aside className="w-64 bg-gray-900 text-white flex flex-col">
         <div className="px-4 py-4 border-b border-gray-800">
           <h1 className="text-xl font-semibold">TravelNow Admin</h1>

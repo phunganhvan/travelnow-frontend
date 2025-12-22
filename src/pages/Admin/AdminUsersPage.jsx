@@ -88,8 +88,12 @@ const AdminUsersPage = () => {
       return;
     }
 
-    put(`/admin/users/${user._id}`, { isActive: !user.isActive })
-      .then(fetchUsers)
+    const nextActive = !user.isActive;
+    put(`/admin/users/${user._id}`, { isActive: nextActive })
+      .then(() => {
+        toast.success(nextActive ? 'Đã mở khóa tài khoản' : 'Đã khóa tài khoản');
+        fetchUsers();
+      })
       .catch(() => {});
   };
 

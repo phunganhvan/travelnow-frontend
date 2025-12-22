@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Button from '../../atoms/Button/Button';
 import IconButton from '../../atoms/IconButton/IconButton';
 import { useAuth } from '../../../context/AuthContext';
+import { toast } from 'react-hot-toast';
 
 const NavBar = () => {
   const navigate = useNavigate();
@@ -25,14 +26,14 @@ const NavBar = () => {
 
   // Xác định mục menu đang active theo đường dẫn hiện tại
   let activeNav = null;
-  if (!location.pathname.startsWith('/user')) {
+  if (!isAuthPage) {
     if (location.pathname === '/') {
       activeNav = 'Trang chủ';
     } else if (location.pathname.startsWith('/search')) {
       activeNav = 'Khách sạn';
-    } else if (location.pathname.startsWith('/trips')) {
+    } else if (location.pathname.startsWith('/user/bookings')) {
       activeNav = 'Chuyến đi của tôi';
-    } else if (location.pathname.startsWith('/deals')) {
+    } else if (location.pathname.startsWith('/vouchers')) {
       activeNav = 'Khuyến mãi';
     }
   }
@@ -108,7 +109,11 @@ const NavBar = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={logout}
+                  onClick={() => {
+                    logout();
+                    toast.success('Đăng xuất thành công');
+                    navigate('/user/login');
+                  }}
                   className="text-[10px] font-medium text-slate-400 hover:text-red-500"
                 >
                   Đăng xuất

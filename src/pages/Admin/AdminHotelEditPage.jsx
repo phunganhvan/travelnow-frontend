@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { get, put } from '../../services/api';
 
 const AdminHotelEditPage = () => {
@@ -169,7 +170,7 @@ const AdminHotelEditPage = () => {
       };
 
       await put(`/admin/hotels/${id}`, payload);
-      navigate('/admin/hotels');
+      toast.success('Cập nhật khách sạn thành công');
     } catch (err) {
       setError(err.message || 'Không lưu được thông tin khách sạn');
     } finally {
