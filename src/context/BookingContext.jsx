@@ -55,6 +55,15 @@ export const BookingProvider = ({ children }) => {
       const created = normalizeBooking(response?.booking);
       if (created) {
         setBookings((prev) => [created, ...prev]);
+        // Ghi nhận hành vi đặt chuyến đi
+        try {
+          post('/analytics/track', {
+            actionType: 'book_trip',
+            metadata: { bookingId: created.id, hotelId: created.hotel?.id }
+          });
+        } catch (e) {
+          // bỏ qua lỗi tracking
+        }
       }
       return created;
     },

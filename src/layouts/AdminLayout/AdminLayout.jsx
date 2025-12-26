@@ -51,6 +51,9 @@ const AdminLayout = () => {
           <NavLink to="/admin/bookings" className={navLinkClassName}>
             Quản lý đặt phòng
           </NavLink>
+          <NavLink to="/admin/analytics" className={navLinkClassName}>
+            Thống kê hành vi người dùng
+          </NavLink>
         </nav>
         <div className="px-4 py-4 border-t border-gray-800 text-xs text-gray-400">
           <button

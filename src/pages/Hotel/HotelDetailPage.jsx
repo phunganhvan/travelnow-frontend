@@ -174,6 +174,19 @@ const HotelDetailPage = () => {
     fetchHotel();
   }, [id]);
 
+  // Ghi nhận hành vi xem chi tiết khách sạn sau khi dữ liệu được tải
+  useEffect(() => {
+    if (!id || !hotel) return;
+    try {
+      post('/analytics/track', {
+        actionType: 'view_hotel',
+        metadata: { hotelId: id }
+      });
+    } catch (e) {
+      // Bỏ qua lỗi tracking để không ảnh hưởng trải nghiệm người dùng
+    }
+  }, [id, hotel]);
+
   // Lấy danh sách đánh giá của khách sạn
   useEffect(() => {
     async function fetchReviews() {

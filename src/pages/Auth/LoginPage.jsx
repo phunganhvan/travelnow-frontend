@@ -8,6 +8,8 @@ import Button from '../../components/atoms/Button/Button';
 import { post } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
+const ADMIN_ROLES = ['admin', 'superadmin', 'manager', 'staff'];
+
 const LoginPage = () => {
   const [activeTab, setActiveTab] = useState('login');
   const navigate = useNavigate();
@@ -34,14 +36,23 @@ const LoginPage = () => {
           email: values.email,
           password: values.password
         });
+        if (data?.user && ADMIN_ROLES.includes(data.user.role)) {
+          toast.error('Tài khoản quản trị không thể đăng nhập tại đây. Vui lòng dùng trang đăng nhập Admin.');
+          return;
+        }
+
         if (data?.token) {
           login(data.token, data.user);
         }
 
         toast.success('Đăng nhập thành công');
-        if (['admin', 'superadmin', 'manager', 'staff'].includes(data?.user?.role)) {
-          navigate('/admin', { replace: true });
-        } else if (redirectTo) {
+        // Ghi nhận hành vi đăng nhập
+        try {
+          post('/analytics/track', { actionType: 'login' });
+        } catch (e) {
+          // bỏ qua lỗi tracking
+        }
+        if (redirectTo) {
           navigate(redirectTo, { replace: true, state: bookingPayload });
         } else {
           navigate('/');

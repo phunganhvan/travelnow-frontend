@@ -199,6 +199,9 @@ const AdminUsersPage = () => {
         className="bg-white rounded-lg shadow p-4 space-y-3 text-sm"
       >
         <h3 className="font-medium">Tạo tài khoản mới (bao gồm admin)</h3>
+        <p className="text-xs text-gray-500 mt-1">
+          Email phải đúng định dạng hợp lệ.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">

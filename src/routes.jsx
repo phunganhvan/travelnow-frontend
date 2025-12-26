@@ -6,6 +6,7 @@ import SearchResultsPage from './pages/Search/SearchResultsPage';
 import HotelDetailPage from './pages/Hotel/HotelDetailPage';
 import HotelCheckoutPage from './pages/Hotel/HotelCheckoutPage';
 import LoginPage from './pages/Auth/LoginPage';
+import AdminLoginPage from './pages/Auth/AdminLoginPage';
 import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
 import OtpPage from './pages/Auth/OtpPage';
 import ResetPasswordPage from './pages/Auth/ResetPasswordPage';
@@ -22,6 +23,7 @@ import AdminHotelDetailPage from './pages/Admin/AdminHotelDetailPage';
 import AdminHotelEditPage from './pages/Admin/AdminHotelEditPage';
 import AdminVouchersPage from './pages/Admin/AdminVouchersPage';
 import AdminBookingsPage from './pages/Admin/AdminBookingsPage';
+import AdminAnalyticsPage from './pages/Admin/AdminAnalyticsPage';
 
 const RequireAuth = ({ children }) => {
   const { user, loading } = useAuth();
@@ -41,11 +43,11 @@ const RequireRoles = ({ roles, children }) => {
   if (loading) return null;
 
   if (!user) {
-    return <Navigate to="/user/login" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/user/login" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   return children;
@@ -102,6 +104,7 @@ const RoutesConfig = () => {
           )}
         />
       </Route>
+      <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route
         path="/admin"
         element={(
@@ -124,6 +127,7 @@ const RoutesConfig = () => {
         <Route path="hotels/:id/edit" element={<AdminHotelEditPage />} />
         <Route path="vouchers" element={<AdminVouchersPage />} />
         <Route path="bookings" element={<AdminBookingsPage />} />
+        <Route path="analytics" element={<AdminAnalyticsPage />} />
       </Route>
     </Routes>
   );
